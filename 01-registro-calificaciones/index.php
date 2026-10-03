@@ -7,7 +7,7 @@
 <body>
     <h1>Registro de calificaciones</h1>
 
-    <form action="resultado.php" method="POST">
+    <form action="resultado.php" method="GET">
         <label for="nombre">Nombre:</label>
         <input type="text" id="nombre" name="nombre" required>
         <br><br>

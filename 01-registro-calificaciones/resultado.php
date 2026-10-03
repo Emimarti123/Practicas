@@ -1,10 +1,10 @@
 
     <?php
-    if ($_SERVER["REQUEST_METHOD"] === "POST") {
-        $nombre = trim((string) ($_POST["nombre"] ?? ""));
-        $materia = trim((string) ($_POST["materia"] ?? ""));
+    if ($_SERVER["REQUEST_METHOD"] === "GET") {
+        $nombre = trim((string) ($_GET["nombre"] ?? ""));
+        $materia = trim((string) ($_GET["materia"] ?? ""));
         $calificacion = filter_var(
-            $_POST["calificacion"] ?? "",
+            $_GET["calificacion"] ?? "",
             FILTER_VALIDATE_FLOAT
         );
 

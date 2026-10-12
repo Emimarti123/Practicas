@@ -9,6 +9,7 @@ $stmt->bind_param(
 );
 $stmt->execute();
 $resultado = $stmt->get_result();
+$verificado = false;
 if ($resultado->num_rows === 1) {
 
     $usuario = $resultado->fetch_assoc();
@@ -22,10 +23,23 @@ if ($resultado->num_rows === 1) {
         $usuario["id"]
     );
     $stmt->execute();
-
-    echo "<h1>Email confirmado</h1>";
-    echo "<a href='login.php'>Iniciar sesión</a>";
-
-} else {
-    echo"Token invalido.";
+    $verificado = true;
 }
+
+$titulo = "Verificar email";
+include_once "header.php";
+?>
+<section class="tarjeta tarjeta-formulario">
+    <?php if ($verificado) { ?>
+        <h1>Email confirmado</h1>
+        <p class="mensaje mensaje-exito">Tu cuenta ya está activa.</p>
+        <a href="login.php" class="boton">Iniciar sesión</a>
+    <?php } else { ?>
+        <h1>Enlace no válido</h1>
+        <p class="mensaje mensaje-error">
+            El token es inválido o ya fue usado.
+        </p>
+        <a href="registro.php">Volver al registro</a>
+    <?php } ?>
+</section>
+<?php include_once "footer.php"; ?>

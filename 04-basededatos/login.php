@@ -43,15 +43,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
-<!-- include_once "header.php"; -->
-<h1>Iniciar sesión</h1>
-<form method="POST">
-    <label>Email</label>
-    <input type="email" name="email" required>
-    <label>Contraseña</label>
-    <input type="password" name="password" required>
-    <button type="submit">Entrar</button>
-</form>
-<p><?php echo htmlspecialchars($mensaje); ?></p>
-<a href="registro.php">Crear cuenta</a>
-<!-- include_once "footer.php"; -->
+<?php
+$titulo = "Iniciar sesión";
+include_once "header.php";
+?>
+<section class="tarjeta tarjeta-formulario">
+    <h1>Iniciar sesión</h1>
+    <?php if ($mensaje !== "") { ?>
+        <p class="mensaje mensaje-error"><?php echo htmlspecialchars($mensaje); ?></p>
+    <?php } ?>
+    <form method="POST" class="formulario">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit" class="boton">Entrar</button>
+    </form>
+    <p class="texto-secundario">
+        ¿No tienes cuenta? <a href="registro.php">Crear cuenta</a>
+    </p>
+</section>
+<?php include_once "footer.php"; ?>

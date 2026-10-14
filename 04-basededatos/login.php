@@ -1,54 +1,28 @@
 <?php
-session_start();
-include_once "conexion.php";
+include_once "auth.php";
+// Si ya hay una sesión abierta no se muestra el formulario, sino un aviso (sesion_activa.php)
+$sesionActiva = usuarioEnSesion();
+$paginaActual = "login.php";
 
 $mensaje = "";
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
-    $email = trim($_POST["email"]);
-    $password = $_POST["password"];
-    $sql = "SELECT * FROM usuarios WHERE email = ?";
-    $stmt = $conexion->prepare($sql);
-
-    $stmt->bind_param("s", $email);
-
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-
-    if ($resultado->num_rows === 1)
-    {
-        $usuario = $resultado->fetch_assoc();
-        if (!$usuario["email_verificado"]) {
-            $mensaje = "Primero confirma tu email.";
-        }
-        elseif (
-            password_verify(
-                $password,
-                $usuario["password"]
-            )
-        ) {
-            session_regenerate_id(true);
-            $_SESSION["usuario_id"] = $usuario["id"];
-            $_SESSION["nombre"] = $usuario["nombre"];
-            header("Location: dashboard.php");
-            exit;
-
-        } else {
-
-            $mensaje = "Contraseña incorrecta.";
-        }
-
-    } else {
-        $mensaje = "Usuario no encontrado.";
-    }
+if (!$sesionActiva && $_SERVER["REQUEST_METHOD"] === "POST") {
+    // Si los datos son correctos, iniciarSesion() redirige y no regresa
+    $mensaje = iniciarSesion(
+        trim($_POST["email"]),
+        $_POST["password"],
+        ["alumno"]
+    );
 }
-?>
-<?php
-$titulo = "Iniciar sesión";
+
+$titulo = "Acceso alumnos";
 include_once "header.php";
+
+if ($sesionActiva) {
+    include "sesion_activa.php";
+} else {
 ?>
 <section class="tarjeta tarjeta-formulario">
-    <h1>Iniciar sesión</h1>
+    <h1>Acceso alumnos</h1>
     <?php if ($mensaje !== "") { ?>
         <p class="mensaje mensaje-error"><?php echo htmlspecialchars($mensaje); ?></p>
     <?php } ?>
@@ -62,5 +36,9 @@ include_once "header.php";
     <p class="texto-secundario">
         ¿No tienes cuenta? <a href="registro.php">Crear cuenta</a>
     </p>
+    <p class="texto-secundario texto-pequeno">
+        ¿Eres docente? <a href="login_docente.php">Inicia sesión aquí</a>
+    </p>
 </section>
+<?php } ?>
 <?php include_once "footer.php"; ?>

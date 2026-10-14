@@ -1,16 +1,14 @@
 <?php
-session_start();
-include_once "conexion.php";
+include_once "auth.php";
+requiereRol(["alumno"]);
 
-if (!isset($_SESSION["usuario_id"])) {
-    header("Location: login.php");
-    exit;
-}
 $usuarioId = $_SESSION["usuario_id"];
 
-$sql = "SELECT id, nombre, email, created_at
+$sql = "SELECT usuarios.id, usuarios.nombre, usuarios.email, usuarios.created_at,
+               carreras.nombre AS carrera
         FROM usuarios
-        WHERE id = ?";
+        LEFT JOIN carreras ON carreras.id = usuarios.carrera_id
+        WHERE usuarios.id = ?";
 $stmt = $conexion->prepare($sql);
 
 $stmt->bind_param(
@@ -22,12 +20,17 @@ $stmt->execute();
 $resultado = $stmt->get_result();
 $usuario = $resultado->fetch_assoc();
 
-$sql = "SELECT materias.nombre AS materia, calificaciones.calificacion
+$sql = "SELECT materias.id, materias.nombre AS materia,
+               maestros.nombre AS maestro,
+               calificaciones.calificacion
         FROM calificaciones
         INNER JOIN materias
         ON materias.id =
             calificaciones.materia_id
-        WHERE calificaciones.usuario_id = ?";
+        LEFT JOIN usuarios AS maestros
+        ON maestros.id = materias.maestro_id
+        WHERE calificaciones.usuario_id = ?
+        ORDER BY materias.nombre";
 
 $stmt = $conexion->prepare($sql);
 $stmt->bind_param(
@@ -35,7 +38,11 @@ $stmt->bind_param(
     $usuarioId
 );
 $stmt->execute();
-$calificaciones = $stmt->get_result();
+$calificaciones = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Promedio solo de las materias que ya tienen calificación
+$calificadas = array_filter(array_column($calificaciones, "calificacion"), fn($c) => $c !== null);
+$promedio = count($calificadas) > 0 ? array_sum($calificadas) / count($calificadas) : null;
 
 $titulo = "Mi panel";
 include_once "header.php";
@@ -55,32 +62,55 @@ include_once "header.php";
         <dt>Número de control</dt>
         <dd><?php echo $usuario["id"]; ?></dd>
 
+        <dt>Carrera</dt>
+        <dd><?php echo htmlspecialchars($usuario["carrera"]); ?></dd>
+
         <dt>Email</dt>
         <dd><?php echo htmlspecialchars($usuario["email"]); ?></dd>
 
         <dt>Fecha de registro</dt>
         <dd><?php echo $usuario["created_at"]; ?></dd>
+
+        <dt>Promedio</dt>
+        <dd><?php echo $promedio === null ? "Sin calificaciones aún" : number_format($promedio, 2); ?></dd>
     </dl>
 </section>
 
 <section class="tarjeta">
     <h2>Mis materias</h2>
-    <?php if ($calificaciones->num_rows === 0) { ?>
-        <p class="texto-secundario">Aún no tienes calificaciones registradas.</p>
+    <?php if (count($calificaciones) === 0) { ?>
+        <p class="texto-secundario">Aún no tienes materias inscritas.</p>
     <?php } else { ?>
         <div class="tabla-contenedor">
             <table class="tabla">
                 <thead>
                     <tr>
                         <th>Materia</th>
+                        <th>Docente</th>
                         <th class="numero">Calificación</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while ($fila = $calificaciones->fetch_assoc()) { ?>
+                    <?php foreach ($calificaciones as $fila) { ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($fila["materia"]); ?></td>
-                        <td class="numero"><?php echo $fila["calificacion"]; ?></td>
+                        <td>
+                            <?php echo htmlspecialchars($fila["materia"]); ?>
+                            <div class="texto-secundario texto-chico"><?php echo htmlspecialchars($fila["id"]); ?></div>
+                        </td>
+                        <td>
+                            <?php if ($fila["maestro"] === null) { ?>
+                                <span class="texto-secundario">Sin asignar</span>
+                            <?php } else { ?>
+                                <?php echo htmlspecialchars($fila["maestro"]); ?>
+                            <?php } ?>
+                        </td>
+                        <td class="numero">
+                            <?php if ($fila["calificacion"] === null) { ?>
+                                <span class="etiqueta">Sin calificar</span>
+                            <?php } else { ?>
+                                <?php echo $fila["calificacion"]; ?>
+                            <?php } ?>
+                        </td>
                     </tr>
                     <?php } ?>
                 </tbody>

@@ -1,11 +1,12 @@
 <?php
-// Algunas páginas (login, dashboard) ya iniciaron la sesión
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// auth.php inicia la sesión (si no estaba iniciada) y define panelDeRol()
+include_once "auth.php";
 // Cada página puede definir $titulo antes de incluir este archivo
 $titulo = $titulo ?? "Escuelinha";
-$haySesion = isset($_SESSION["usuario_id"]);
+// El menú usa la sesión ya validada contra la BD, nunca $_SESSION directo
+$usuarioMenu = usuarioEnSesion();
+$haySesion = $usuarioMenu !== null;
+$rol = $haySesion ? $usuarioMenu["rol"] : null;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -22,15 +23,17 @@ $haySesion = isset($_SESSION["usuario_id"]);
 <body>
 <header class="barra">
     <div class="barra-contenido">
-        <a href="<?php echo $haySesion ? "dashboard.php" : "login.php"; ?>" class="logo">
+        <a href="<?php echo $haySesion ? panelDeRol($rol) : "login.php"; ?>" class="logo">
             Escuelinha
         </a>
         <nav class="menu">
-            <?php // ALUMNOS: desactivado. Para activarlo, quita el comentario <!-- --> de la línea de abajo ?>
-            <!-- <a href="alumnos.php">Alumnos</a> -->
-            <a href="calificaciones.php">Calificaciones</a>
             <?php if ($haySesion) { ?>
-                <a href="dashboard.php">Mi panel</a>
+                <a href="<?php echo panelDeRol($rol); ?>">
+                    <?php echo $rol === "maestro" ? "Mis materias" : "Mi panel"; ?>
+                </a>
+                <?php if ($rol === "admin") { ?>
+                    <a href="calificaciones.php">Calificaciones</a>
+                <?php } ?>
                 <a href="logout.php" class="boton boton-secundario">Cerrar sesión</a>
             <?php } else { ?>
                 <a href="login.php">Iniciar sesión</a>
@@ -40,3 +43,9 @@ $haySesion = isset($_SESSION["usuario_id"]);
     </div>
 </header>
 <main class="contenedor">
+<?php if (isset($_SESSION["aviso"])) { ?>
+    <p class="mensaje mensaje-<?php echo $_SESSION["aviso"]["tipo"]; ?>">
+        <?php echo htmlspecialchars($_SESSION["aviso"]["mensaje"]); ?>
+    </p>
+    <?php unset($_SESSION["aviso"]); ?>
+<?php } ?>

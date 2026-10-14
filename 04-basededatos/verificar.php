@@ -1,7 +1,7 @@
 <?php
-include_once "conexion.php";
+include_once "auth.php";
 $token = $_GET["token"] ?? "";
-$sql = "SELECT id FROM usuarios WHERE token_verification = ?";
+$sql = "SELECT id, rol FROM usuarios WHERE token_verification = ?";
 $stmt = $conexion->prepare($sql);
 $stmt->bind_param(
     "s",
@@ -24,6 +24,7 @@ if ($resultado->num_rows === 1) {
     );
     $stmt->execute();
     $verificado = true;
+    $paginaLogin = $usuario["rol"] === "alumno" ? "login.php" : "login_docente.php";
 }
 
 $titulo = "Verificar email";
@@ -32,8 +33,10 @@ include_once "header.php";
 <section class="tarjeta tarjeta-formulario">
     <?php if ($verificado) { ?>
         <h1>Email confirmado</h1>
-        <p class="mensaje mensaje-exito">Tu cuenta ya está activa.</p>
-        <a href="login.php" class="boton">Iniciar sesión</a>
+        <p class="mensaje mensaje-exito">
+            Tu correo quedó confirmado. Podrás iniciar sesión cuando el administrador apruebe tu cuenta.
+        </p>
+        <a href="<?php echo $paginaLogin; ?>" class="boton">Ir a iniciar sesión</a>
     <?php } else { ?>
         <h1>Enlace no válido</h1>
         <p class="mensaje mensaje-error">

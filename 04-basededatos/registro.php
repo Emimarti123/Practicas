@@ -1,67 +1,38 @@
 <?php
-include_once "conexion.php";
-$mensaje = "";
-$tipoMensaje = "";
-$enlaceVerificacion = "";
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+include_once "auth.php";
+// Si ya hay una sesión abierta no se muestra el formulario, sino un aviso (sesion_activa.php)
+$sesionActiva = usuarioEnSesion();
+$paginaActual = "registro.php";
 
-    $id = (int) trim($_POST["id"]);
-    $nombre = trim($_POST["nombre"]);
-    $email = trim($_POST["email"]);
-    $password = $_POST["password"];
-    // Convertir contraseña a hash
-    $passwordHash = password_hash(
-        $password,
-        PASSWORD_DEFAULT
+$resultado = null;
+if (!$sesionActiva && $_SERVER["REQUEST_METHOD"] === "POST") {
+    $resultado = registrarUsuario(
+        (int) trim($_POST["id"]),
+        trim($_POST["nombre"]),
+        trim($_POST["email"]),
+        $_POST["password"],
+        "alumno",
+        (int) $_POST["carrera_id"]
     );
-    // Crear token
-    $token = bin2hex(random_bytes(32));
-
-    $sql = "INSERT INTO usuarios
-            (id, nombre, email, password, token_verification)
-            VALUES (?, ?, ?, ?, ?)";
-
-    $stmt = $conexion->prepare($sql);
-
-    $stmt->bind_param(
-        "issss",
-        $id,
-        $nombre,
-        $email,
-        $passwordHash,
-        $token
-    );
-
-    try {
-        $stmt->execute();
-        $mensaje = "Usuario registrado correctamente.";
-        $tipoMensaje = "exito";
-        // Simula el correo de confirmación: el enlace se muestra en la página
-        $enlaceVerificacion = "verificar.php?token=" . $token;
-
-    } catch (mysqli_sql_exception $e) {
-        $tipoMensaje = "error";
-        // 1062 = entrada duplicada (id o email ya existen)
-        if ($e->getCode() === 1062) {
-            $mensaje = "Ese número de control o email ya está registrado.";
-        } else {
-            $mensaje = "No se pudo registrar el usuario.";
-        }
-    }
 }
+$carreras = obtenerCarreras();
 
-$titulo = "Registro";
+$titulo = "Registro de alumno";
 include_once "header.php";
+
+if ($sesionActiva) {
+    include "sesion_activa.php";
+} else {
 ?>
 <section class="tarjeta tarjeta-formulario">
     <h1>Registro de alumno</h1>
-    <?php if ($mensaje !== "") { ?>
-        <div class="mensaje mensaje-<?php echo $tipoMensaje; ?>">
-            <?php echo htmlspecialchars($mensaje); ?>
-            <?php if ($enlaceVerificacion !== "") { ?>
+    <?php if ($resultado) { ?>
+        <div class="mensaje mensaje-<?php echo $resultado["tipo"]; ?>">
+            <?php echo htmlspecialchars($resultado["mensaje"]); ?>
+            <?php if ($resultado["enlace"] !== "") { ?>
                 <br>
                 Para confirmar tu correo:
-                <a href="<?php echo htmlspecialchars($enlaceVerificacion); ?>">Confirmar email</a>
+                <a href="<?php echo htmlspecialchars($resultado["enlace"]); ?>">Confirmar email</a>
             <?php } ?>
         </div>
     <?php } ?>
@@ -70,6 +41,15 @@ include_once "header.php";
         <input type="number" id="id" name="id" min="1" required>
         <label for="nombre">Nombre</label>
         <input type="text" id="nombre" name="nombre" required>
+        <label for="carrera_id">Carrera</label>
+        <select id="carrera_id" name="carrera_id" required>
+            <option value="">Selecciona tu carrera</option>
+            <?php while ($carrera = $carreras->fetch_assoc()) { ?>
+                <option value="<?php echo $carrera["id"]; ?>">
+                    <?php echo htmlspecialchars($carrera["nombre"]); ?>
+                </option>
+            <?php } ?>
+        </select>
         <label for="email">Email</label>
         <input type="email" id="email" name="email" required>
         <label for="password">Contraseña</label>
@@ -79,5 +59,9 @@ include_once "header.php";
     <p class="texto-secundario">
         ¿Ya tienes cuenta? <a href="login.php">Iniciar sesión</a>
     </p>
+    <p class="texto-secundario texto-pequeno">
+        ¿Eres docente? <a href="registro_docente.php">Regístrate aquí</a>
+    </p>
 </section>
+<?php } ?>
 <?php include_once "footer.php"; ?>
